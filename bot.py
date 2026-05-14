@@ -1049,7 +1049,7 @@ class App(tk.Tk):
         tk.Label(footer,
                  text="pasta_raiz / Nicho X / conta_Y / [atalho.lnk  videos.mp4]   →   Nicho X / postados /",
                  font=("Segoe UI", 7), bg=C["panel"], fg=C["dim"]).pack(side=tk.LEFT)
-        tk.Label(footer, text="Criado por Vitório Gomes",
+        tk.Label(footer, text="Criado por @VitorioGomes",
                  font=("Segoe UI", 7), bg=C["panel"], fg=C["muted"]).pack(side=tk.RIGHT)
 
     # ── Ações ──────────────────────────────────────────────────────
