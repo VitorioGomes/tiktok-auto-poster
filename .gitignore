@@ -1,0 +1,19 @@
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Instalador gerado
+installer_output/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Config local do usuário
+config.json
+
+# Pastas de contas (dados pessoais)
+Nicho*/
+conta*/
+postados/
