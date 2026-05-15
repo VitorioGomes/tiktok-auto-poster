@@ -6,7 +6,7 @@ Posta 1 vídeo por conta em múltiplas contas.
 Cada pasta de conta deve ter um atalho .lnk para o Opera (com perfil já logado no TikTok).
 """
 
-APP_VERSION = "1.0"
+APP_VERSION = "1.4"
 GITHUB_USER = "VitorioGomes"
 GITHUB_REPO = "tiktok-auto-poster"
 
