@@ -485,6 +485,7 @@ class TikTokBot:
         self.log = logger.log
         self.stop = stop_event
         self.posted_dir.mkdir(exist_ok=True)
+        self.current_driver = None
 
     def _get_description(self) -> str:
         return random.choice(self.descriptions)
@@ -533,6 +534,7 @@ class TikTokBot:
             if account["user_data_dir"]:
                 self.log(f"Perfil: {account['user_data_dir']}  [{account['profile_directory'] or 'Default'}]")
             driver = create_driver(account)
+            self.current_driver = driver
             wait = WebDriverWait(driver, 30)
 
             self.log("Navegando para TikTok Studio...")
@@ -650,6 +652,7 @@ class TikTokBot:
             self.log(traceback.format_exc(), "ERROR")
             return False
         finally:
+            self.current_driver = None
             if driver:
                 try:
                     driver.close()
@@ -721,6 +724,8 @@ class App(tk.Tk):
         self._current_nicho = ""
         self._nicho_descs: dict[str, list[str]] = {}
         self._tray = None
+        self._bot = None
+        self._opera_visible = False
         self._build_ui()
         self.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
         base = self._base_dir()
@@ -1006,6 +1011,15 @@ class App(tk.Tk):
         )
         self.btn_stop.pack(side=tk.LEFT, padx=(0, 8))
 
+        self.btn_opera = tk.Button(
+            btns, text="👁  Ver Opera",
+            command=self._toggle_opera,
+            font=("Segoe UI", 9), bg=C["panel"], fg=C["muted"],
+            relief=tk.FLAT, padx=14, pady=12, cursor="hand2", state=tk.DISABLED,
+        )
+        self.btn_opera.pack(side=tk.LEFT, padx=(0, 8))
+        self._hover(self.btn_opera, C["border"], C["panel"])
+
         b_clr = tk.Button(btns, text="Limpar logs", command=self._clear,
                           font=("Segoe UI", 9), bg=C["panel"], fg=C["muted"],
                           relief=tk.FLAT, padx=14, pady=12, cursor="hand2")
@@ -1181,12 +1195,15 @@ class App(tk.Tk):
 
         self._save_config()
         self._stop_event.clear()
+        self._opera_visible = False
         self.btn_start.config(state=tk.DISABLED, bg=self.C["dim"], fg=self.C["muted"])
         self.btn_stop.config(state=tk.NORMAL, bg=self.C["red"], fg="white")
+        self.btn_opera.config(state=tk.NORMAL, text="👁  Ver Opera")
         self._set_status(f"Executando: {nicho_name}...", "green")
 
         logger = ColorLogger(self.txt)
         bot = TikTokBot(str(nicho_dir), descriptions, logger, self._stop_event)
+        self._bot = bot
 
         def _run():
             try:
@@ -1202,9 +1219,32 @@ class App(tk.Tk):
         self._set_status("Parando...", "yellow")
         self.btn_stop.config(state=tk.DISABLED)
 
+    def _toggle_opera(self):
+        driver = self._bot.current_driver if self._bot else None
+        if not driver:
+            return
+        if self._opera_visible:
+            try:
+                driver.set_window_position(-32000, 0)
+            except Exception:
+                pass
+            self._opera_visible = False
+            self.btn_opera.config(text="👁  Ver Opera")
+        else:
+            try:
+                driver.set_window_position(100, 50)
+                driver.set_window_size(1280, 800)
+            except Exception:
+                pass
+            self._opera_visible = True
+            self.btn_opera.config(text="🙈  Ocultar Opera")
+
     def _done(self):
+        self._bot = None
+        self._opera_visible = False
         self.btn_start.config(state=tk.NORMAL, bg=self.C["green"], fg=self.C["bg"])
         self.btn_stop.config(state=tk.DISABLED, bg=self.C["panel"], fg=self.C["muted"])
+        self.btn_opera.config(state=tk.DISABLED, text="👁  Ver Opera")
         self._set_status("Finalizado.", "muted")
 
 
