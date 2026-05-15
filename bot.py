@@ -23,6 +23,8 @@ from pathlib import Path
 from datetime import datetime
 
 import pyperclip
+import pystray
+from PIL import Image, ImageDraw
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -206,6 +208,7 @@ def create_driver(account: dict) -> webdriver.Chrome:
     opts.add_argument("--disable-blink-features=AutomationControlled")
     opts.add_argument("--no-first-run")
     opts.add_argument("--disable-default-apps")
+    opts.add_argument("--window-position=-32000,0")  # abre fora da tela visível
     opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     opts.add_experimental_option("useAutomationExtension", False)
 
@@ -717,7 +720,9 @@ class App(tk.Tk):
         self._pending_nicho = ""
         self._current_nicho = ""
         self._nicho_descs: dict[str, list[str]] = {}
+        self._tray = None
         self._build_ui()
+        self.protocol("WM_DELETE_WINDOW", self._minimize_to_tray)
         base = self._base_dir()
         self.dir_var.set(str(base))
         self._criar_estrutura(base)
@@ -1066,6 +1071,43 @@ class App(tk.Tk):
         self._current_nicho = new_nicho
         descs = self._nicho_descs.get(new_nicho, list(DEFAULT_DESCRIPTIONS))
         self._set_descriptions(descs)
+
+    # ── Bandeja do sistema ─────────────────────────────────────────
+    @staticmethod
+    def _make_tray_icon() -> Image.Image:
+        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse([2, 2, 62, 62], fill="#00d084")
+        draw.rectangle([18, 16, 26, 48], fill="#070c18")
+        draw.rectangle([14, 16, 30, 24], fill="#070c18")
+        draw.rectangle([38, 16, 46, 48], fill="#070c18")
+        draw.rectangle([34, 16, 50, 24], fill="#070c18")
+        return img
+
+    def _minimize_to_tray(self):
+        self.withdraw()
+        if self._tray is None:
+            menu = pystray.Menu(
+                pystray.MenuItem("Abrir", self._show_from_tray, default=True),
+                pystray.Menu.SEPARATOR,
+                pystray.MenuItem("Sair", self._quit_app),
+            )
+            self._tray = pystray.Icon(
+                "TikTokAutoPoster", self._make_tray_icon(),
+                "TikTok Auto Poster", menu
+            )
+            threading.Thread(target=self._tray.run, daemon=True).start()
+
+    def _show_from_tray(self, icon=None, item=None):
+        self.after(0, self.deiconify)
+        self.after(0, self.lift)
+        self.after(0, self.focus_force)
+
+    def _quit_app(self, icon=None, item=None):
+        self._stop_event.set()
+        if self._tray:
+            self._tray.stop()
+        self.after(0, self.destroy)
 
     def _ph_in(self, _event):
         if self.desc_entry.get() == self._PLACEHOLDER:
